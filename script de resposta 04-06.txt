@@ -1,0 +1,148 @@
+import pyautogui
+import time
+import pyperclip
+import webbrowser
+import cv2
+import datetime
+
+def escrever(frase):
+    pyperclip.copy(frase)
+    pyautogui.hotkey('ctrl','v')
+
+pausa= 15*3600    
+
+
+#hora
+agora = datetime.datetime.now()
+horaatual = agora.hour
+
+
+
+#abrir a internet
+#webbrowser.open_new_tab('https://my.imobzi.com/#/home')
+pyautogui.moveTo(1242,5,duration=0.1)
+pyautogui.click()
+
+while True:
+    time.sleep(30)
+
+    if horaatual >= 18.30:
+     print('parei')
+     time.sleep(pausa)
+
+    #repetir os comandos
+    for c in range(1):
+
+        # clicar no logo
+        pyautogui.moveTo(23, 101, duration=1)
+        pyautogui.click()
+        time.sleep(5)
+
+               
+
+        # clicar dinheirinho
+        pyautogui.moveTo(30, 355, duration=1)
+        pyautogui.click()
+        time.sleep(8)
+
+        #clicar no negocio
+        pyautogui.moveTo(207,233,duration=1)
+        pyautogui.click()
+        time.sleep(5)
+
+        #interesse(se o botão interesse não estiver na tela é sinal que não tem novos negocios poranto o programa é interrompido
+        interesse=pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\interessecinza.png', confidence=0.7)
+        if interesse == None:
+            break
+        else:
+            pyautogui.click(interesse[0],interesse[1],duration=0.5)
+            time.sleep(5)
+
+
+        # botão whats
+        whats = pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\botaowhats.png', confidence=0.7)
+        pyautogui.click(whats[0], whats[1], duration=0.3)
+        time.sleep(3)
+
+
+        #enviar msg
+        botao = pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\enviwhats.png', confidence=0.7)
+        pyautogui.click(botao[0], botao[1], duration=0.3)
+        agora = datetime.datetime.now()
+        print("A ação foi executada às", agora.strftime("%H:%M:%S"))
+
+
+
+        # iniciar conversa
+        iniconv=pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\iniciarconv.png', confidence=0.5)
+        while iniconv == None:
+            iniconv = pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\iniciarconv.png', confidence=0.5)
+            if iniconv == None:
+                print('esperei abrir whats(iniciar conversa)')
+                time.sleep(0.5)
+            else:
+                pyautogui.click(iniconv[0],iniconv[1],duration=0.5)
+                time.sleep(0)
+
+
+        #Usar whatsweb
+        whatweb=pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\whatweb.png',confidence=0.7)
+        while whatweb == None:
+            whatweb = pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\whatweb.png', confidence=0.7)
+            if whatweb == None:
+                print('aguardei web (usar whatweb)')
+                time.sleep(0.5)
+            else:
+                pyautogui.click(whatweb[0],whatweb[1], duration=0.5)
+
+
+
+       # caixa de texto e colar e enviar (ADICIONEI O PRINT PARA SABER QUE HORAS O CONTATO FOI DIRECIONADO)
+        msg=pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\mensagemj.png',confidence=0.7)
+        while msg == None:
+            msg = pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\mensagemj.png', confidence=0.7)
+            if msg == None:
+                print('esperei (caixa de texto)')
+                time.sleep(0.5)
+
+
+            # Mensagem para o horario da manhã:
+            elif horaatual < 12:
+                pyautogui.click(msg[0],msg[1],duration=1)
+                escrever('Bom dia! Tudo bem? \n Meu nome é Pedro sou corretor da Imobiliaria Jaguar vou te ajudar a encontrar o seu imovel para locação https://www.jaguarimoveisguarulhos.com.br/ \n \n você se interessou por algum imovel em especifico? se não me passe mais ou menos o que você precisa')
+                pyautogui.press('enter')
+                time.sleep(5)
+
+           # Mensagem para o horario da tarde
+            elif horaatual >= 12 and horaatual <= 18:    
+
+                pyautogui.click(msg[0],msg[1],duration=1)
+                escrever('Boa tarde! Tudo bem? \n Meu nome é Pedro sou corretor da Imobiliaria Jaguar vou te ajudar a encontrar o seu imovel para locação https://www.jaguarimoveisguarulhos.com.br/ \n \n você se interessou por algum imovel em especifico? se não me passe mais ou menos o que você precisa')
+                pyautogui.press('enter')
+                time.sleep(5)
+            # Mensagem para o horario da noite 
+            elif horaatual > 18:   
+
+                pyautogui.click(msg[0],msg[1],duration=1)
+                escrever('Boa noite! Tudo bem? \n Meu nome é Pedro sou corretor da Imobiliaria Jaguar vou te ajudar a encontrar o seu imovel para locação https://www.jaguarimoveisguarulhos.com.br/ \n \n você se interessou por algum imovel em especifico? se não me passe mais ou menos o que você precisa')
+                pyautogui.press('enter')
+                time.sleep(5) 
+
+
+        #fechar janela
+        pyautogui.hotkey('ctrl','w')
+
+        avdsair = pyautogui.locateCenterOnScreen(r'C:\\Users\\Pedro\\Desktop\\sairdaaba.png', confidence=0.7)
+        if avdsair == None:
+            print('Não encontrei botão :(')
+            pass
+        else:
+            pyautogui.click(avdsair[0], avdsair[1], duration=1)
+
+
+        #clicar no logo
+        pyautogui.moveTo(23, 101, duration=1)
+        pyautogui.click()
+
+
+time.sleep(60)
