@@ -1,0 +1,122 @@
+import PySimpleGUI as sg
+import re
+import pywhatkit
+import time
+import keyboard
+from datetime import datetime
+import phonenumbers
+
+
+def final(texto):
+    contatos=[]
+    for match in phonenumbers.PhoneNumberMatcher(texto, 'BR'):
+        numero = phonenumbers.format_number(match.number, phonenumbers.PhoneNumberFormat.E164)
+        contatos.append(numero)
+    return contatos
+
+cont = 0
+
+layout = [
+    [sg.Text('Escolha a opção', key='comunicado')], 
+    [sg.InputText(key='numeusu')],  
+    [sg.Button('Cadastrar'), sg.Button('Conferir Numeros'), sg.Button('Cancelar', visible=False)],
+    [sg.Button('enviar'), sg.Button('Me Avise', key='pag2'), sg.Button('voltar', visible=False)],
+    [sg.Text('', key='retorno'), sg.Multiline(key='mensagem', size=(40, 10), visible=False)],
+    [sg.Text(f' Quantos numeros foram cadastrados: {cont}', key='cont')],
+    [sg.Button('texto', key='inser'), sg.Button('ok', key='cadtexto')],
+]
+
+
+def inicio ():
+    janela['Cadastrar'].update(visible=True)
+    janela['Conferir Numeros'].update(visible=True)
+    janela['Enviar'].update(visible=True)
+    janela['pag2'].update(visible=True)
+
+
+
+
+
+janela = sg.Window('Propaganda WhatsApp', layout)
+
+aviso = []
+contatos = []
+tempo = []
+trato=[]
+
+while True:
+
+    evento, valores = janela.read()
+
+    if evento == sg.WINDOW_CLOSED:
+        break
+
+    if evento == 'Cadastrar':
+        numero = valores['numeusu']
+        formatado = re.sub(r'\s+|-', '', numero)
+        contatos.append(formatado)
+        cont += 1
+        janela['cont'].update(f' Quantos numeros foram cadastrados: {cont} ')
+        janela['retorno'].update(f'O numero {formatado} foi formatado e adicionado a lista', text_color='yellow')
+        janela['numeusu'].update('')
+
+    if evento == 'Conferir Numeros':
+        janela['retorno'].update(f'Numeros que já foram cadastrados: {contatos}')
+
+    if evento == 'pag2':
+        janela['comunicado'].update(f'Você receberá uma mensagem quando terminar')
+        janela['pag2'].update('Cadastrar')
+        botão1 = janela['Cadastrar']
+        botão2 = janela['Conferir Numeros']
+        botão3 = janela['voltar']
+        botão4 = janela['mensagem']
+        botão1.update(visible=False)
+        botão2.update(visible=False)
+        botão3.update(visible=True)
+        botão4.update(visible=False)
+        numeav = valores['numeusu']
+        numeavfor = re.sub(r'\s+|-', '', numeav)
+        aviso.append(numeavfor)
+        janela['retorno'].update(f'O numero que recebrá a mensagem: {aviso} ')
+
+    if evento == 'enviar' and len(contatos) == 0:
+        janela['retorno'].update('Nenhum numero foi cadastrado')
+
+    if evento == 'enviar' and len(contatos) >= 1:
+
+        janela.close()
+
+        while len(contatos) >= 1:
+            time.sleep(5)
+            # enviar
+            pywhatkit.sendwhatmsg_instantly(contatos[0], 'Oi, tudo bem? Olha essa oportunidade casa com preço bom no Pq Continental II  https://www.jaguarimoveisguarulhos.com.br/imovel/casa-3-quartos-parque-continental-ii-guarulhos-2-vagas-100m2-code-2469 agende uma visita com um de nossos corretores', 40, True, 5)
+            del contatos[0]
+            time.sleep(30)
+            keyboard.press_and_release('ctrl+w')
+
+        if len(aviso) >= 1:
+            time.sleep(20)
+            pywhatkit.sendwhatmsg(aviso, 'Todos os numeros foram enviados', datetime.now().hour, datetime.now().minute + 3)
+
+    if evento == 'voltar':
+        janela['comunicado'].update('Adicione os numeros:'),
+        botão1.update(visible=True)
+        botão2.update(visible=True)
+        botão3.update(visible=False)
+        janela['retorno'].update('')
+        janela['pag2'].update('Me Avise')
+        continue
+
+    if evento == 'inser':
+        janela['inser'].update(visible=False)
+        janela['mensagem'].update(visible=True)
+        janela['cadtexto'].update(visible=True)
+
+    if evento == 'cadtexto' and len(valores['mensagem']) > 0:
+        limpo=final(valores['mensagem'])
+        contatos.extend(limpo)
+        janela['retorno'].update('Já encontrei os numeros e cadastrei na lista')
+        janela['mensagem'].update('')
+
+
+janela.close()
