@@ -1,0 +1,123 @@
+import pyautogui
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import PySimpleGUI as sg
+import time
+import keyboard
+
+def iniciar_driver():
+    chrome_options=Options()
+    #trabalhar com tela abaixada
+    chrome_options.add_argument("--headless")
+    arguments=['--lang=ptBR','--start-maximize']
+    for argument in arguments:
+        chrome_options.add_experimental_option('prefs',{
+            'download_prompt_for_download':False,
+            'profile.default_content_setting_values.notifications':2,
+            'profile.default_content_setting_values.automatic_dowloads':1
+        })
+
+    driver=webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()),options=chrome_options)
+    return driver
+
+
+
+
+
+#iniciar imobzi com webdriver
+
+layout=[
+    [sg.Text('Olá, insira o seu login e senha do Imobzi')],
+    [sg.Text('Login')],
+    [sg.InputText(key='email')],
+    [sg.Text('Senha')],
+    [sg.InputText(key='senha',password_char='*')],
+    [sg.Button('ok'), sg.Button('cancelar')],
+    ]
+
+
+janela=sg.Window('Login Automação',layout)
+
+while True:
+    evento,valores=janela.read()
+    def ok():
+     evento == 'ok'
+
+
+    keyboard.add_hotkey('enter',ok)   
+      
+
+
+    if evento == sg.WIN_CLOSED:
+        break
+
+    if evento == 'cancelar':
+       break
+
+    if evento == 'ok':
+        janela.close()
+        driver=iniciar_driver()
+        driver.get('https://my.imobzi.com/#/home')
+        time.sleep(0)
+
+        email=valores['email']
+        senha=valores['senha']
+
+        campocad = driver.find_element (By.ID,'email')
+        camposenh= driver.find_element(By.ID,'password') 
+        botaoentrar=driver.find_element(By.XPATH,"//span[contains(text(),'ENTRAR')]")     
+           
+        if campocad.is_enabled:
+            print('Campo e-mail encontrado')
+            campocad.send_keys(email)
+
+        if camposenh.is_enabled:
+           camposenh.send_keys(senha)            
+        if botaoentrar.is_enabled:
+           print('encontrei botão')
+           botaoentrar.click()
+           time.sleep(5)
+
+         #clicar dinheiro 
+        dinheirinho=driver.find_element(By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+        if dinheirinho.is_enabled:
+            print('encontrei o dinheiro')
+            dinheirinho.click()
+            time.sleep(5)
+        
+
+        menu=driver.find_element(By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-nav/page-deals/ion-header/ion-navbar/div[2]/div")
+        #abrir menu
+        if menu.is_enabled:
+            print('encontrei o menu')
+            menu.click()
+            time.sleep(3)
+
+
+        # selecionar locação
+        menuloc=driver.find_element(By.XPATH,'/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div') 
+        if menuloc.is_enabled:
+            menuloc.click()
+            time.sleep(6)
+ 
+        #clicar no contato 
+        contato=driver.find_element(By.XPATH,"//ion-item[starts-with(@class, 'deal-item')]")
+        if menuloc.is_enabled:
+            print('encontrei')
+            contato.click()
+            time.sleep(5)
+
+        #clicar whats
+        swit=driver.find_element(By.XPATH,'/html/body/ion-app/ng-component/ion-split-pane/ion-nav/deal-details/ion-content/div[2]/div/div[3]/deal-details-data/ion-row[1]/div/deal-contact/ion-item/div[1]/button[1]') 
+        driver.switch_to.frame(swit)
+        switpai=swit.find_element(By.XPATH,"..")   
+        print(switpai)
+                   
+       
+
+
+
+        time.sleep(60)
