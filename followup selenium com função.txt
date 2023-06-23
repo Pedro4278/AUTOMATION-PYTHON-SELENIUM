@@ -1,0 +1,134 @@
+import pyautogui
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import PySimpleGUI as sg
+import time
+import keyboard
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+
+
+
+def iniciar_driver():
+    chrome_options=Options()
+    #trabalhar com tela abaixada
+    #chrome_options.add_argument("--headless")
+    arguments=['--lang=ptBR','--start-maximize']
+    for argument in arguments:
+        chrome_options.add_experimental_option('prefs',{
+            'download_prompt_for_download':False,
+            'profile.default_content_setting_values.notifications':2,
+            'profile.default_content_setting_values.automatic_dowloads':1
+        })
+
+    driver=webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()),options=chrome_options)
+    return driver
+
+
+def espere_e_clique(driver, by, locator, timeout=10):
+    wait = WebDriverWait(driver, timeout)
+    button = wait.until(EC.element_to_be_clickable((by, locator)))
+    button.click()
+
+
+
+
+
+#iniciar imobzi com webdriver
+
+layout=[
+    [sg.Text('Olá, insira o seu login e senha do Imobzi')],
+    [sg.Text('Login')],
+    [sg.InputText(key='email')],
+    [sg.Text('Senha')],
+    [sg.InputText(key='senha',password_char='*')],
+    [sg.Button('ok'), sg.Button('cancelar')],
+    ]
+
+
+janela=sg.Window('Login Automação',layout)
+
+while True:
+    evento,valores=janela.read()
+    def ok():
+     evento == 'ok'
+
+
+    keyboard.add_hotkey('enter',ok)   
+      
+
+
+    if evento == sg.WIN_CLOSED:
+        break
+
+    if evento == 'cancelar':
+       break
+
+    if evento == 'ok':
+        janela.close()
+        driver=iniciar_driver()
+        driver.get('https://my.imobzi.com/#/home')
+        time.sleep(0)
+
+        email=valores['email']
+        senha=valores['senha']
+
+        campocad = driver.find_element (By.ID,'email')
+        camposenh= driver.find_element(By.ID,'password') 
+        botaoentrar=driver.find_element(By.XPATH,"//span[contains(text(),'ENTRAR')]")     
+           
+        if campocad.is_enabled:
+            print('Campo e-mail encontrado')
+            campocad.send_keys(email)
+
+        if camposenh.is_enabled:
+           camposenh.send_keys(senha)            
+        if botaoentrar.is_enabled:
+           print('encontrei botão')
+           botaoentrar.click()
+           time.sleep(5)
+
+         #clicar dinheiro 
+        espere_e_clique(driver,By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+                
+        #abrir menu
+        espere_e_clique(driver,By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-nav/page-deals/ion-header/ion-navbar/div[2]/div")
+        print('encontrei o menu')
+        
+        # selecionar locação
+        espere_e_clique(driver,By.XPATH,"/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div") 
+         
+        #clicar no contato
+        time.sleep(5)        
+        espere_e_clique(driver,By.XPATH,"//ion-item[starts-with(@class, 'deal-item')]")
+        
+        #clicar whats                
+        espere_e_clique (driver,By.XPATH,'//button[@class="whatsapp-button"]')
+
+        #clicar 'enviar mensagem'
+
+        espere_e_clique(driver,By.XPATH,'/html/body/ion-app/ion-modal/div/whatsapp-sharing/ion-footer/div/div/div[2]/button')
+
+        
+        handles = driver.window_handles
+
+       # Imprimir os identificadores
+        for handle in handles:
+         c=handle
+         print(handle)
+
+
+        #mudar para whats
+        # Mudar para uma janela específica
+        driver.switch_to.window(handle)
+
+               
+        espere_e_clique(driver,By.XPATH,'//*[@id="action-button"]')
+        time.sleep(0)
+        
+        # usar whatweb
+        espere_e_clique(driver,By.XPATH,'//*[@id="fallback_block"]/div/div/h4[2]/a/span')
