@@ -5,6 +5,12 @@ import time
 import keyboard
 from datetime import datetime
 import phonenumbers
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
+chrome_options=Options()
+chrome_options.add_argument('--headless')
+driver=webdriver.Chrome(options=chrome_options)
 
 
 def final(texto):
@@ -14,33 +20,39 @@ def final(texto):
         contatos.append(numero)
     return contatos
 
-cont = 0
+
+contatos = []
+
+sg.theme('DarkBlue3')
+cor_botao=('white','#FF6600')
+cor_de_fundo='#000000'
+fonte_geral_botões='Roboto',10,'bold'
+sg.theme_background_color(cor_de_fundo)
+
 
 layout = [
-    [sg.Text('Escolha a opção', key='comunicado')], 
-    [sg.InputText(key='numeusu')],  
-    [sg.Button('Cadastrar'), sg.Button('Conferir Numeros'), sg.Button('Cancelar', visible=False)],
-    [sg.Button('enviar'), sg.Button('Me Avise', key='pag2'), sg.Button('voltar', visible=False)],
-    [sg.Text('', key='retorno'), sg.Multiline(key='mensagem', size=(40, 10), visible=False)],
-    [sg.Text(f' Quantos numeros foram cadastrados: {cont}', key='cont')],
-    [sg.Button('texto', key='inser'), sg.Button('ok', key='cadtexto')],
+    [sg.Text('Ola! Escolha a opção:', key='comunicado',background_color='#000000',font=('Lato',16,'bold'))], 
+    [sg.InputText(key='numeusu', visible=False)],  
+    [sg.Button('Cadastrar', size=(12,1), button_color=(cor_botao), font=(fonte_geral_botões) ), sg.Button('Conferir Numeros',size=(12,1),button_color=(cor_botao), font=(fonte_geral_botões)), sg.Button('Cancelar', visible=False,size=(12,1),button_color=(cor_botao), font=(fonte_geral_botões))],
+    [sg.Button('enviar',size=(12,1),button_color=(cor_botao), font=(fonte_geral_botões)), sg.Button('Me Avise', key='pag2',size=(12,1),button_color=(cor_botao), font=(fonte_geral_botões)), sg.Button('voltar', visible=False,size=(12,1),button_color=(cor_botao), font=(fonte_geral_botões))],
+    [sg.Multiline(key='mensagem', size=(40, 10))],
+    [sg.Text(f' Quantos numeros foram cadastrados: {len(contatos)}', key='cont',font=('Roboto',10,'bold'),background_color='#000000')],
+    [sg.Button('ok', key='cadtexto',size=(12,1),button_color=(cor_botao), font=(fonte_geral_botões))],
+    [sg.Text('', key='retorno',background_color='#000000', font=('lato',12))],
 ]
 
 
-def inicio ():
-    janela['Cadastrar'].update(visible=True)
-    janela['Conferir Numeros'].update(visible=True)
-    janela['Enviar'].update(visible=True)
-    janela['pag2'].update(visible=True)
-
-
-
+layout1=[
+    [sg.Text (f'As mensagens serão enviadas',key='aviso1', font=('Lato',12,'bold'), background_color='#000000')],
+    [sg.Text(f'Para interromper o envio aperte cancelar', font=('Lato',12,'bold'), background_color='#000000')],
+    [sg.Button('Cancelar',key='cancelar',button_color=(cor_botao), size=(12,1))],
+    ]
 
 
 janela = sg.Window('Propaganda WhatsApp', layout)
 
+
 aviso = []
-contatos = []
 tempo = []
 trato=[]
 
@@ -50,13 +62,17 @@ while True:
 
     if evento == sg.WINDOW_CLOSED:
         break
+ 
+    if len(contatos) >= 1:
+        janela['enviar'].update(button_color=('black', '#00FF91'))
+        
+
 
     if evento == 'Cadastrar':
         numero = valores['numeusu']
         formatado = re.sub(r'\s+|-', '', numero)
         contatos.append(formatado)
-        cont += 1
-        janela['cont'].update(f' Quantos numeros foram cadastrados: {cont} ')
+        janela['cont'].update(f' Quantos numeros foram cadastrados: {len(contatos)} ')
         janela['retorno'].update(f'O numero {formatado} foi formatado e adicionado a lista', text_color='yellow')
         janela['numeusu'].update('')
 
@@ -86,17 +102,33 @@ while True:
 
         janela.close()
 
-        while len(contatos) >= 1:
+        #abertura da janela de espera
+        janela1=sg.Window('Enviando mensagens', layout1, background_color=cor_de_fundo)
+
+        #envio das mensagens
+        while len(contatos) >= 1:         
+        
+            evento1,valores1 = janela1.read()
+                      
+                                    
             time.sleep(5)
-            # enviar
-            pywhatkit.sendwhatmsg_instantly(contatos[0], 'Oi, tudo bem? Olha essa oportunidade casa com preço bom no Pq Continental II  https://www.jaguarimoveisguarulhos.com.br/imovel/casa-3-quartos-parque-continental-ii-guarulhos-2-vagas-100m2-code-2469 agende uma visita com um de nossos corretores', 40, True, 5)
+            driver.get('https://web.whatsapp.com/')
+            disparo=pywhatkit.sendwhatmsg_instantly(contatos[0], 'TESTE', 40, True, 5)
+            driver.get(disparo)
             del contatos[0]
             time.sleep(30)
             keyboard.press_and_release('ctrl+w')
+            if len(contatos)<=0:
+                janela1['aviso1'].update('Todas as mensagens já foram enviadas', text_color='green')
+            
+            if evento1 == 'cancelar':
+              break    
 
+        
+        #cadastro do numero 'Me Avise
         if len(aviso) >= 1:
             time.sleep(20)
-            pywhatkit.sendwhatmsg(aviso, 'Todos os numeros foram enviados', datetime.now().hour, datetime.now().minute + 3)
+            pywhatkit.sendwhatmsg_instantly(aviso, 'Todas as mensagens foram enviadas', 40, True, 5)
 
     if evento == 'voltar':
         janela['comunicado'].update('Adicione os numeros:'),
@@ -107,16 +139,16 @@ while True:
         janela['pag2'].update('Me Avise')
         continue
 
-    if evento == 'inser':
-        janela['inser'].update(visible=False)
-        janela['mensagem'].update(visible=True)
-        janela['cadtexto'].update(visible=True)
+         
 
     if evento == 'cadtexto' and len(valores['mensagem']) > 0:
         limpo=final(valores['mensagem'])
         contatos.extend(limpo)
-        janela['retorno'].update('Já encontrei os numeros e cadastrei na lista')
+        janela['cont'].update(f'Numeros que já foram cadastrados: {len(contatos)}')
         janela['mensagem'].update('')
+        janela['enviar'].update(button_color=('black', '#00FF91'))
+        
+        
 
 
 janela.close()
