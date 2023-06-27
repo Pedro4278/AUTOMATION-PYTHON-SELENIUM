@@ -9,6 +9,8 @@ import time
 import keyboard
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
+
 
 
 
@@ -17,6 +19,16 @@ def iniciar_driver():
     chrome_options=Options()
     #trabalhar com tela abaixada
     #chrome_options.add_argument("--headless")
+
+    #INICIA O CHROME COM OS COKIES SALVOS!!
+    chrome_options.add_argument("user-data-dir=C:\\Users\\vilma\\AppData\\Local\\Google\\Chrome\\User Data\\Default")
+
+    driver_path = 'C:\\Users\\vilma\\OneDrive\\Área de Trabalho\\webdriver\\chromedriver' # Substitua pelo caminho correto do chromedriver.exe
+
+    service = webdriver.chrome.service.Service(driver_path)
+    service.start()
+
+
     arguments=['--lang=ptBR','--start-maximize']
     for argument in arguments:
         chrome_options.add_experimental_option('prefs',{
@@ -29,11 +41,15 @@ def iniciar_driver():
     return driver
 
 
-def espere_e_clique(driver, by, locator, timeout=10):
+def espere_e_clique(driver, by, locator, timeout=120):
     wait = WebDriverWait(driver, timeout)
     button = wait.until(EC.element_to_be_clickable((by, locator)))
     button.click()
 
+
+def aguardar_carregar(driver,by,locator,timeout=30):
+   aguarde=WebDriverWait(driver,timeout)
+   até=aguarde.until(EC.element_to_be_clickable((by, locator)))
 
 
 
@@ -54,9 +70,12 @@ janela=sg.Window('Login Automação',layout)
 
 while True:
     evento,valores=janela.read()
+
+    #driver.get('https://web.whatsapp.com/')
+    #time.sleep(120)
+
     def ok():
      evento == 'ok'
-
 
     keyboard.add_hotkey('enter',ok)   
       
@@ -71,27 +90,33 @@ while True:
     if evento == 'ok':
         janela.close()
         driver=iniciar_driver()
-        driver.get('https://my.imobzi.com/#/home')
-        time.sleep(0)
+        time.sleep(3)
+        driver.get('https://my.imobzi.com/index.html#/home')
+        time.sleep(3)
+        
 
         email=valores['email']
         senha=valores['senha']
+       
+       #caso o imobzi não esteja logado
+        try:
+            campocad = driver.find_element(By.ID, 'email')
+            camposenh = driver.find_element(By.ID, 'password')
+            botaoentrar = driver.find_element(By.XPATH, "//span[contains(text(),'ENTRAR')]")
 
-        campocad = driver.find_element (By.ID,'email')
-        camposenh= driver.find_element(By.ID,'password') 
-        botaoentrar=driver.find_element(By.XPATH,"//span[contains(text(),'ENTRAR')]")     
-           
-        if campocad.is_enabled:
-            print('Campo e-mail encontrado')
-            campocad.send_keys(email)
+            if campocad.is_enabled() and camposenh.is_enabled() and botaoentrar.is_enabled():
+                print('Campo e-mail encontrado')
+                campocad.send_keys(email)
+                camposenh.send_keys(senha)
+                print('Encontrei botão')
+                botaoentrar.click()
+                time.sleep(5)
 
-        if camposenh.is_enabled:
-           camposenh.send_keys(senha)            
-        if botaoentrar.is_enabled:
-           print('encontrei botão')
-           botaoentrar.click()
-           time.sleep(5)
+        except NoSuchElementException:
+            pass
 
+
+        time.sleep(3)
          #clicar dinheiro 
         espere_e_clique(driver,By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
                 
@@ -101,34 +126,98 @@ while True:
         
         # selecionar locação
         espere_e_clique(driver,By.XPATH,"/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div") 
-         
-        #clicar no contato
-        time.sleep(5)        
-        espere_e_clique(driver,By.XPATH,"//ion-item[starts-with(@class, 'deal-item')]")
+        time.sleep(3)
         
-        #clicar whats                
-        espere_e_clique (driver,By.XPATH,'//button[@class="whatsapp-button"]')
+        #laço de repetição, lembre-se de conectar a variavel total a um input na interface para o usuario decidir quantas mensagens deseja enviar
+        total=2
+        for c in range (total):
+            #rolar até o contato desejado        
+            contato=aguardar_carregar(driver,By.XPATH,"//ion-item[starts-with(@class, 'deal-item')]")
+            time.sleep(5)
+            elemento = driver.find_element(By.XPATH, "//div[starts-with(@class,'deal-item-container')][40]")
+            driver.execute_script("arguments[0].scrollIntoView();", elemento) 
+            
+            #clicar no contato
+            time.sleep(5)        
+            espere_e_clique(driver,By.XPATH,"//div[starts-with(@class,'deal-item-container')][40]")
+            
+            #clicar whats                
+            espere_e_clique (driver,By.XPATH,'//button[@class="whatsapp-button"]')
 
-        #clicar 'enviar mensagem'
+            #clicar 'enviar mensagem'        
+            espere_e_clique(driver,By.XPATH,'/html/body/ion-app/ion-modal/div/whatsapp-sharing/ion-footer/div/div/div[2]/button')
+                        
+            #obtem os handles das abas
+            handles = driver.window_handles
+            pag=[]
+        # Imprimir os identificadores
+            for handle in handles:
+                c=handle
+                pag.append(handle)
+                print(handle)
 
-        espere_e_clique(driver,By.XPATH,'/html/body/ion-app/ion-modal/div/whatsapp-sharing/ion-footer/div/div/div[2]/button')
+
+            
+            # Mudar para foco para  janela whatssApp
+            driver.switch_to.window(handle)
+
+            
+        #em caso de link incorreto        
+            page_source = driver.page_source
+            if "O link está incorreto. Feche essa janela e tente usar outro link." in page_source:
+                time.sleep(2)
+                driver.close
+                print('Tinha um link incorreto e eu fechei a janela e continuei o serviço')
+                #LEMBRE-SE DE ADICIONAR UM BREAK QUANDO TERMINAR O CODIGO PARA QUE ELE CONTINUE A EXECUÇÃO
+                break
+
+
+
+            #botão de mensagem        
+            espere_e_clique(driver,By.XPATH,'//*[@id="action-button"]')
+            
+            
+            # usar whatweb
+            espere_e_clique(driver,By.XPATH,'//*[@id="fallback_block"]/div/div/h4[2]/a/span')
+            time.sleep(5)
+
+            #Localizar caixa de texto(Tive que usar esta estrutura usando laço while porque a função usando WebDriverWait não funcionou)        
+            caixa_de_mensagem = None
+            
+            while caixa_de_mensagem is None:
+                try:
+                    caixa_de_mensagem = driver.find_element(By.XPATH, '//*[@id="main"]/footer/div[1]/div/span[2]/div/div[2]/div[1]')
+                except NoSuchElementException:
+                    time.sleep(3)
+
+            
+            #clicar na caixa de texto
+            caixa_de_mensagem.click()
+            time.sleep(1)
+            
+            #escrever a mensagem 
+            caixa_de_mensagem.send_keys('Ola, Meu nome é Pedro sou corretor da Imobiliria Jaguar')
+            time.sleep(1)
+            
+            #enviar mensagem
+            #caixa_de_mensagem.send_keys(Keys.ENTER)
+            time.sleep(4)
+            
+            # fechar aba
+            driver.close()
+            print('sem novidade meu patrão')
+            time.sleep(3)
+
+            #voltar para janela CRM(os handles estão armazenados em uma lista e referenciei o primeiro handle(CRM) com o comando pag[0])
+            driver.switch_to.window(pag[0])
+
+            # atualizar contato 
+            espere_e_clique(driver, By.XPATH,'//a[contains(text(),"FOLLOW-UP")]')
+            time.sleep(10)
+
+            #Voltar para os contatos 
+        
+            driver.back()
 
         
-        handles = driver.window_handles
-
-       # Imprimir os identificadores
-        for handle in handles:
-         c=handle
-         print(handle)
-
-
-        #mudar para whats
-        # Mudar para uma janela específica
-        driver.switch_to.window(handle)
-
-               
-        espere_e_clique(driver,By.XPATH,'//*[@id="action-button"]')
-        time.sleep(0)
         
-        # usar whatweb
-        espere_e_clique(driver,By.XPATH,'//*[@id="fallback_block"]/div/div/h4[2]/a/span')
