@@ -1,0 +1,281 @@
+import PySimpleGUI as sg
+import phonenumbers
+import time
+import PySimpleGUI as sg
+import re
+#import pywhatkit
+import keyboard
+from datetime import datetime
+import phonenumbers
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from PIL import Image
+import ctypes
+import copy
+
+sg.theme('DarkBlue3')
+cor_botao=('white','#FF6600')
+cor_de_fundo='#000000'
+fonte_geral_botões='Montserrat',15,'bold'
+sg.theme_background_color(cor_de_fundo)
+imagem_caminho='C:/Users/vilma/OneDrive/Área de Trabalho/logo_jaguar.py.png'
+imagem2=Image.open(imagem_caminho)
+imagem_corrigida=imagem2.resize((300,200))
+imagem_corrigidapy=imagem_corrigida.tobytes()
+contatos = []
+
+#resolver o problema de ir e voltar da janela, resolver TODOS OS ERROS antes de inserir as novas funções
+
+layout_principal=[
+    [sg.Image(r'C:/Users/vilma/OneDrive/Área de Trabalho/logo_menor.png', size=(350,150),background_color='#000000')],
+    [sg.Text('Como eu posso te ajudar hoje?', size=(20,3), font=('Roboto',25,'bold'),background_color='#000000')],
+    [sg.Checkbox('Reproduzir em primeiro plano', font=('Roboto',10,'bold'),background_color='#000000', key='modo_headless')],
+    [sg.Button('Definir Textos', size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
+    [sg.Button('Aguardar Contatos', size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
+    [sg.Button('Enviar Mensagens',size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
+    [sg.Button('Retornar Aos Clientes',size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
+]
+
+
+
+janela_principal=sg.Window('Menu',layout_principal)
+
+#janela principal
+
+while True:
+       evento_principal,valores_principal = janela_principal.read()
+       tamanho_original = janela_principal.size
+
+       if evento_principal == sg.WINDOW_CLOSED:
+          break
+
+       if evento_principal == 'Definir Textos' :
+           janela_principal.hide()
+
+
+           # Layout caixa de escrita
+           layout_texto = [
+               [sg.Text('Digite a mensagem que você deseja enviar para os seus clientes', size=(30, 5),
+                        font=('Roboto', 12, 'bold'), background_color='#000000')],
+               [sg.Multiline(key='texto', size=(40, 3))],
+               [sg.Multiline(key='texto1', size=(40, 3))],
+               [sg.Multiline(key='texto2', size=(40, 3))],
+               [sg.Button('OK', button_color=cor_botao, font=fonte_geral_botões, key='ok_texto'),
+                sg.Button('Cancelar', button_color=cor_botao, font=fonte_geral_botões, key='cancelar_texto')],
+           ]
+
+           janela_texto = sg.Window('Cadastrar Texto', layout_texto)
+
+           while True:
+
+            evento_texto, valores_texto = janela_texto.read()
+
+            if evento_texto == sg.WINDOW_CLOSED:
+                break
+
+            if evento_texto == 'ok_texto':
+               #variavel que armazena os textos que serão enviados para os clientes#TEXTO_ENVIO
+               #metodo copy cria um clone da informação para que ela possa ser usada em outros loops
+
+               #primeira mensagem
+               texto_pronto=valores_texto['texto']
+               texto_cadastrado=copy.deepcopy(texto_pronto)
+
+               #segunda mensagem
+               texto_pronto1=valores_texto['texto1']
+               texto_cadastrado1=copy.deepcopy(texto_pronto1)
+
+               #terceira mensagem
+               texto_pronto2=valores_texto['texto2']
+               texto_cadastrado2=copy.deepcopy(texto_pronto2)
+
+               #limpar o campo de texto
+               print(texto_cadastrado)
+               janela_texto['texto'].update('')
+               janela_texto['texto1'].update('')
+               janela_texto['texto2'].update('')
+
+               janela_principal.un_hide()
+               janela_texto.close()
+
+            if evento_texto == 'cancelar_texto':
+              janela_texto.close()
+              time.sleep(1)
+              janela_principal.un_hide()
+
+
+       if evento_principal =='Aguardar Contatos':
+           janela_principal.hide()
+           print('ok')
+
+       cont=0
+       if evento_principal == 'Enviar Mensagens':
+           janela_principal.hide()
+
+           #janela layout
+
+           # disparo = layout função enviar mensagens em grande quantidade ' ENVIAR MENSAGENS'
+
+           layout_disparo_principal = [
+               [sg.Text('Ola! Escolha a opção:', key='comunicado', background_color='#000000',
+                        font=('Lato', 16, 'bold'))],
+               [sg.Button('Conferir', key='conferir_disparo', size=(12, 1), button_color=(cor_botao),
+                          font=(fonte_geral_botões))],
+               [sg.Button('enviar', size=(12, 1), button_color=(cor_botao), font=(fonte_geral_botões)),
+                sg.Button('voltar', size=(12, 1), button_color=(cor_botao), font=(fonte_geral_botões))],
+               [sg.Multiline(key='mensagem', size=(40, 10))],
+               [sg.Text(f' Quantos numeros foram cadastrados: {len(contatos)}', key='cont',
+                        font=('Roboto', 10, 'bold'), background_color='#000000')],
+               [sg.Button('ok', key='formatar_numero', size=(12, 1), button_color=(cor_botao),
+                          font=(fonte_geral_botões))],
+               [sg.Text('', key='retorno', background_color='#000000', font=('lato', 12))],
+           ]
+
+           janela_disparo = sg.Window('Propaganda WhatsApp', layout_disparo_principal, finalize=True)
+
+
+           def final(texto):
+               contatos = []
+               for match in phonenumbers.PhoneNumberMatcher(texto, 'BR'):
+                   numero = phonenumbers.format_number(match.number, phonenumbers.PhoneNumberFormat.E164)
+                   contatos.append(numero)
+               return contatos
+
+
+           # Loop principal de enviar mensagens
+           while True:
+               evento_disparo, valores_disparo = janela_disparo.read()
+               # Coloque o código restante aqui
+
+               if evento_disparo == sg.WINDOW_CLOSED:
+                break
+
+                janela_disparo.close()
+
+               if evento_disparo == sg.WINDOW_CLOSED:
+                   janela_principal.un_hide()
+                   break
+
+               #troca a cor do botão "enviar" quando a lista tem um numero cadastrado
+               if len(contatos) >= 1:
+                   janela_disparo['enviar'].update(button_color=('black', '#00FF91'))
+
+
+               if evento_disparo == 'Conferir Numeros':
+                   janela_disparo['retorno'].update(f'Numeros que já foram cadastrados: {contatos}')
+
+
+               # não esta funcionando
+               #se tiver apertado enviar e a mensagem não tiver sido cadastrada
+               if evento_disparo == 'enviar' and len(texto_cadastrado) is None:
+                   janela_disparo['retorno']. update('Você precisa cadastrar a mensagem que será enviada em:')
+
+
+               # Voltar para a janela principal
+               if evento_disparo == 'voltar':
+                   janela_disparo.close()
+                   time.sleep(0.3)
+                   janela_principal.un_hide()
+
+
+               # se tiver apertado enviar e o len de contatos for igual a zero
+               if evento_disparo == 'enviar' and len(contatos) == 0:
+                janela_disparo['retorno'].update('Nenhum numero foi cadastrado')
+
+
+
+               #apertou enviar e esta tudo certo
+               if evento_disparo == 'enviar' and len(contatos) >= 1:
+                   #Inserir um WINDOW CLOSE na janela disparo 2
+
+                   janela_disparo.close()
+
+                   # disparo2= layout DE AVISO QUE AS MENSAGENS SERÃO ENVIADAS
+                   layout_disparo2 = [
+                       [sg.Text(f'As mensagens serão enviadas', key='aviso1', font=('Lato', 12, 'bold'),
+                                background_color='#000000')],
+                       [sg.Text(f'Para interromper o envio aperte cancelar', font=('Lato', 12, 'bold'),
+                                background_color='#000000')],
+                       [sg.Button('Cancelar', key='cancelar', button_color=(cor_botao), size=(12, 1))],
+                   ]
+
+                   # abertura da janela de espera
+                   janela_disparo2 = sg.Window('Enviando mensagens', layout_disparo2, background_color=cor_de_fundo)
+
+                   # envio das mensagens
+                   while len(contatos) >= 1:
+
+                       evento_disparo2, valores_disparo2 = janela_disparo2.read()
+                      # pywhatkit.sendwhatmsg_instantly(contatos[0], texto_cadastrado, 40, True, 5)
+                       del contatos[0]
+                       time.sleep(30)
+                       keyboard.press_and_release('ctrl+w')
+                       if len(contatos) <= 0:
+                           janela_disparo2['aviso1'].update('Todas as mensagens já foram enviadas', text_color='green')
+
+                   if evento_disparo2 == 'cancelar':
+                     break
+
+
+
+               if evento_disparo == 'formatar_numero' and len(valores_disparo['mensagem']) > 0:
+                   limpo = final(valores_disparo['mensagem'])
+                   contatos.extend(limpo)
+                   janela_disparo['cont'].update(f'Numeros que já foram cadastrados: {len(contatos)}')
+                   janela_disparo['mensagem'].update('')
+                   janela_disparo['enviar'].update(button_color=('black', '#00FF91'))
+
+               if evento_disparo == 'conferir_disparo':
+                   if len(contatos) == 0:
+                       janela_disparo['retorno'].update('Nenhum numero foi cadastrado')
+
+                   else:
+                       janela_disparo['retorno'].update(contatos)
+
+           janela_disparo.close()
+
+       #Retornar aos clientes antigos
+       if evento_principal == 'Retornar Aos Clientes':
+
+           janela_principal.hide()
+
+           #interface de follow-up
+           layout_retorno = [
+               [sg.Text('Para quantos clientes você deseja retornar?', font=('Lato', 16, 'bold'), background_color='#000000')],
+               [sg.Radio('5 clientes', 'grupo', key='5', font=(fonte_geral_botões), background_color='#000000')],
+               [sg.Radio('10 clientes', 'grupo', key='10', font=(fonte_geral_botões), background_color='#000000')],
+               [sg.Radio('15 clientes', 'grupo', key='15', font=(fonte_geral_botões), background_color='#000000')],
+               [sg.Button('Enviar $', font=fonte_geral_botões, button_color=cor_botao, key='enviar_retorno'),
+                sg.Button('Voltar', font=fonte_geral_botões, button_color=cor_botao, key='voltar_retorno')],
+           ]
+
+           janela_retorno = sg.Window('Retornar clientes $', layout_retorno)
+
+           while True:
+
+            evento_retorno, valores_retorno = janela_retorno.read()
+
+            if evento_retorno == sg.WINDOW_CLOSED:
+              janela_retorno.close()
+              janela_principal.un_hide()
+              break
+
+           #minimizar  janela principal?
+            if evento_retorno == 'voltar_retorno':
+             janela_retorno.hide()
+             time.sleep(1)
+             #aonde fica armazenada esta variavel quando é minimizada?
+             janela_principal.un_hide()
+
+
+            if evento_retorno == 'enviar_retorno':
+                print('ok')
+
+       if evento_principal == sg.WINDOW_CLOSED:
+             break
+
+janela_principal.close()
+janela_disparo.close()
+janela_disparo2.close()
+janela_texto.close()
+janela_retorno.close()
