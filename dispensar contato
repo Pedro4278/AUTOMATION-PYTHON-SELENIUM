@@ -1,0 +1,168 @@
+import ctypes
+import os
+import keyboard
+import re
+import time
+from datetime import datetime
+from PIL import Image
+import phonenumbers
+import pywhatkit
+import PySimpleGUI as sg
+import selenium
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException
+import sys
+
+sg.theme('DarkBlue3')
+cor_botao=('white','#FF6600')
+cor_de_fundo='#000000'
+fonte_geral_botões='Montserrat',15,'bold'
+sg.theme_background_color(cor_de_fundo)
+
+# Para o sistema não entrar no modo suspensão
+ES_CONTINUOUS = 0x80000000
+ES_SYSTEM_REQUIRED = 0x00000001
+ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
+def iniciar_driver():
+    chrome_options=Options()
+    #trabalhar com tela abaixada
+    #chrome_options.add_argument("--headless")
+
+    #CAMINHO PARA O DIRETORIO DE DADOS DO USUARIO DO GOOGLE CHROME #INICIA O CHROME COM OS COKIES SALVOS!!
+    chrome_options.add_argument("user-data-dir=C:\\Users\\vilma\\AppData\\Local\\Google\\Chrome\\User Data\\Default") #não se esqueça de colocar o 'user-data-dir' no inicio
+
+    driver_path = 'C:\\Users\\vilma\\OneDrive\\Área de Trabalho\\webdriver\\chromedriver' # Substitua pelo caminho correto do chromedriver.exe
+
+    service = webdriver.chrome.service.Service(driver_path)
+    service.start()
+
+
+    arguments=['--lang=ptBR','--start-maximize']
+    for argument in arguments:
+        chrome_options.add_experimental_option('prefs',{
+            'download_prompt_for_download':False,
+            'profile.default_content_setting_values.notifications':2,
+            'profile.default_content_setting_values.automatic_dowloads':1
+        })
+
+    driver=webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()),options=chrome_options)
+    return driver
+
+
+
+def espere_e_clique(driver, by, locator, timeout=15):
+    wait = WebDriverWait(driver, timeout)
+    button = wait.until(EC.element_to_be_clickable((by, locator)))
+    button.click()
+
+
+def aguardar_carregar(driver,by,locator,timeout=30):
+   aguarde=WebDriverWait(driver,timeout)
+   até=aguarde.until(EC.element_to_be_clickable((by, locator)))
+
+
+def reiniciar_programa():
+    python=sys.executable
+    args=sys.argv
+    args.insert(0,sys.executable)
+    sys.exit(os.spawnve(os.P_WAIT,python,args,os.environ))
+
+
+
+
+
+layout_dispensar = [
+    [sg.Text(' Quantos clientes você deseja dispensar?', font=('Lato', 16, 'bold'), background_color='#000000')],
+    [sg.Radio('10 clientes', 'grupo', key='10', font=(fonte_geral_botões), background_color='#000000')],
+    [sg.Radio('20 clientes', 'grupo', key='20', font=(fonte_geral_botões), background_color='#000000')],
+    [sg.Radio('30 clientes', 'grupo', key='30', font=(fonte_geral_botões), background_color='#000000')],
+    [sg.Button('OK', font=fonte_geral_botões, button_color=cor_botao, key='ok_dispensar'),
+     sg.Button('Voltar', font=fonte_geral_botões, button_color=cor_botao, key='voltar_dispensar')],
+]
+
+
+janela_dispensar=sg.Window('Dispensar contatos retornados', layout_dispensar)
+
+total_dispensar = 0
+while True:
+    evento_dispensar,valor_dispensar= janela_dispensar.read()
+
+    if evento == sg.WINDOW_CLOSED:
+        break
+        janela_dispensar.close()
+
+    if evento_dispensar == '10':
+        total_dispensar = 10
+
+    if evento_dispensar == '20':
+        total_dispensar = 20
+
+    if evento_dispensar == '30':
+       total_dispensar = 30
+
+
+    if evento_dispensar == 'ok':
+
+
+        driver = iniciar_driver()
+        time.sleep(1)
+        janela_dispensar.hide
+        time.sleep(0.5)
+        driver.get('https://my.imobzi.com/index.html#/home')
+        time.sleep(3)
+
+        while True:
+
+
+            for c in range(total_dispensar):
+                time.sleep(5)
+                # Voltar ao inicio
+                espere_e_clique(driver, By.XPATH, '//div[@class="imobzi-mascot"]')
+
+                # clicar dinheiro
+                espere_e_clique(driver, By.XPATH,
+                                "/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+
+                # abrir menu
+                espere_e_clique(driver, By.XPATH,
+                                "/html/body/ion-app/ng-component/ion-split-pane/ion-nav/page-deals/ion-header/ion-navbar/div[2]/div")
+                print('encontrei o menu')
+                time.sleep(0.5)
+
+                # selecionar setor de locação
+                espere_e_clique(driver, By.XPATH,
+                                "/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div")
+                time.sleep(10)
+
+                # CLICAR NO CONTATO
+                espere_e_clique(driver, By.XPATH, '//*[@id="6542798388985856"]')
+                time.sleep(1)
+                # negativar contato
+                espere_e_clique(driver, By.XPATH, '//button[@id="loss"]')
+                time.sleep(1)
+                # abrir abas de motivos
+                espere_e_clique(driver, By.XPATH, "//div[@class='lost-reason-field']")
+                time.sleep(1)
+                # dados do contato invalidos (opção)
+                espere_e_clique(driver, By.XPATH,
+                                "//div[@class='popover-list-item']//div[@class='popover-item ' and span='Dados de contato inválido']")
+                time.sleep(1)
+                # setinha de ok
+                espere_e_clique(driver, By.XPATH, '//button[@form="deal-lost-reason-form" and @type="submit"]')
+                time.sleep(8)
+                print('contato negativado com sucesso')
+            # janela com aviso de que acabou e botão de voltar
+
+
+    if evento_dispensar == 'voltar_dispensar':
+        janela_dispensar.hide()
+        time.sleep(0.5)
+        janela_principal.un_hide()
