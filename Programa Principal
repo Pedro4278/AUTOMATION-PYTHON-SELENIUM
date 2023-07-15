@@ -1,17 +1,83 @@
-import PySimpleGUI as sg
-import phonenumbers
-import time
-import PySimpleGUI as sg
-import re
-#import pywhatkit
+import ctypes
+import os
 import keyboard
+import re
+import time
 from datetime import datetime
+from PIL import Image
 import phonenumbers
+import pywhatkit
+import PySimpleGUI as sg
+import selenium
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from PIL import Image
-import ctypes
-import copy
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import NoSuchElementException
+import requests
+
+
+
+# Para o sistema não entrar no modo suspensão
+ES_CONTINUOUS = 0x80000000
+ES_SYSTEM_REQUIRED = 0x00000001
+ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
+def iniciar_driver():
+    chrome_options=Options()
+    #trabalhar com tela abaixada
+    #chrome_options.add_argument("--headless")
+
+    #CAMINHO PARA O DIRETORIO DE DADOS DO USUARIO DO GOOGLE CHROME #INICIA O CHROME COM OS COKIES SALVOS!!
+    chrome_options.add_argument("user-data-dir=C:\\Users\\vilma\\AppData\\Local\\Google\\Chrome\\User Data\\Default") #não se esqueça de colocar o 'user-data-dir' no inicio
+
+    driver_path = 'C:\\Users\\vilma\\OneDrive\\Área de Trabalho\\webdriver\\chromedriver' # Substitua pelo caminho correto do chromedriver.exe
+
+    service = webdriver.chrome.service.Service(driver_path)
+    service.start()
+
+
+    arguments=['--lang=ptBR','--start-maximize']
+    for argument in arguments:
+        chrome_options.add_experimental_option('prefs',{
+            'download_prompt_for_download':False,
+            'profile.default_content_setting_values.notifications':2,
+            'profile.default_content_setting_values.automatic_dowloads':1
+        })
+
+    driver=webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()),options=chrome_options)
+    return driver
+
+
+
+def espere_e_clique(driver, by, locator, timeout=15):
+    wait = WebDriverWait(driver, timeout)
+    button = wait.until(EC.element_to_be_clickable((by, locator)))
+    button.click()
+
+
+def aguardar_carregar(driver,by,locator,timeout=30):
+   aguarde=WebDriverWait(driver,timeout)
+   até=aguarde.until(EC.element_to_be_clickable((by, locator)))
+
+
+def fazer_requisicao(url):
+    while True:
+        try:
+            response=requests.get(url) #realiza a requisição GET
+
+            if response.status_code == 200:
+                print('Requisição bem sucedida')
+                break #sai do loop
+        except requests.exceptions.ConnectionError:
+            print('Conexão falhou, aguardando 120 segundos')
+            time.sleep(120)
+
+url='https://www.google.com.br/'
 
 sg.theme('DarkBlue3')
 cor_botao=('white','#FF6600')
@@ -24,31 +90,40 @@ imagem_corrigida=imagem2.resize((300,200))
 imagem_corrigidapy=imagem_corrigida.tobytes()
 contatos = []
 
-#resolver o problema de ir e voltar da janela, resolver TODOS OS ERROS antes de inserir as novas funções
+
+
+# resolver TODOS OS ERROS antes de inserir as novas funções
 
 layout_principal=[
     [sg.Image(r'C:/Users/vilma/OneDrive/Área de Trabalho/logo_menor.png', size=(350,150),background_color='#000000')],
     [sg.Text('Como eu posso te ajudar hoje?', size=(20,3), font=('Roboto',25,'bold'),background_color='#000000')],
     [sg.Checkbox('Reproduzir em primeiro plano', font=('Roboto',10,'bold'),background_color='#000000', key='modo_headless')],
-    [sg.Button('Definir Textos', size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
-    [sg.Button('Aguardar Contatos', size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
-    [sg.Button('Enviar Mensagens',size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
-    [sg.Button('Retornar Aos Clientes',size=(25,2), button_color=cor_botao, font=(fonte_geral_botões),pad=((50, 50), 0))],
-]
-
+    [sg.Button('Definir Textos', size=(25,2), button_color=cor_botao, font=fonte_geral_botões,pad=((50, 50), 0))],
+    [sg.Button('Aguardar Contatos', size=(25,2), button_color=cor_botao, font=fonte_geral_botões,pad=((50, 50), 0))],
+    [sg.Button('Enviar Mensagens',size=(25,2), button_color=cor_botao, font=fonte_geral_botões,pad=((50, 50), 0))],
+    [sg.Button('Retornar Aos Clientes',size=(25,2), button_color=cor_botao, font=fonte_geral_botões,pad=((50, 50), 0))],
+    [sg.Button('Dispensar Contatos',key='dispensar',size=(25,2), button_color=cor_botao, font=fonte_geral_botões,pad=((50, 50), 0))],
+    [sg.Button('Fazer Login',key='login',size=(25,2), button_color=cor_botao, font=fonte_geral_botões,pad=((50, 50), 0))],
+    ]
 
 
 janela_principal=sg.Window('Menu',layout_principal)
 
 #janela principal
 
+
+
+
 while True:
+ try:
+   while True:
        evento_principal,valores_principal = janela_principal.read()
        tamanho_original = janela_principal.size
 
        if evento_principal == sg.WINDOW_CLOSED:
-          break
+             break
 
+       #Definir textos que serão enviados
        if evento_principal == 'Definir Textos' :
            janela_principal.hide()
 
@@ -61,7 +136,7 @@ while True:
                [sg.Multiline(key='texto1', size=(40, 3))],
                [sg.Multiline(key='texto2', size=(40, 3))],
                [sg.Button('OK', button_color=cor_botao, font=fonte_geral_botões, key='ok_texto'),
-                sg.Button('Cancelar', button_color=cor_botao, font=fonte_geral_botões, key='cancelar_texto')],
+                sg.Button('Voltar', button_color=cor_botao, font=fonte_geral_botões, key='cancelar_texto')],
            ]
 
            janela_texto = sg.Window('Cadastrar Texto', layout_texto)
@@ -100,15 +175,223 @@ while True:
 
             if evento_texto == 'cancelar_texto':
               janela_texto.close()
-              time.sleep(1)
+              time.sleep(0.3)
               janela_principal.un_hide()
 
-
+       #aguardar clientes que chegam do  CRM
        if evento_principal =='Aguardar Contatos':
-           janela_principal.hide()
-           print('ok')
 
-       cont=0
+           janela_principal.hide()
+
+           layout_aviso_aguardar = [
+               [sg.Text('Não se esqueça de verificar se\nas suas contas estão logadas!', text_color='#FFFFFF',
+                        justification='center', font=('Century Gothic', 20, 'bold'), background_color='#000000')],
+               [sg.Column([[sg.Button('ok', key='ok_aguardar', button_color=('#000000', '#FFFFFF'), font=fonte_geral_botões, size=(10, 1))],
+                           [sg.Button('Voltar', key='voltar_aguardar', button_color=('#000000', '#FFFFFF'), font=fonte_geral_botões, size=(10, 1))]],
+                          justification='center')]
+           ]
+
+           janela_aviso_aguardar = sg.Window('Aguardar Contatos', layout_aviso_aguardar, size=(470, 180))
+
+           while True:
+
+               evento_aguardar, valores_aguardar = janela_aviso_aguardar.read()
+
+               if evento_aguardar == sg.WINDOW_CLOSED:
+                   janela_aviso_aguardar.close()
+                   break
+
+               if evento_aguardar == 'ok_aguardar':
+                  janela_aviso_aguardar.close()
+                  time.sleep(0.3)
+
+
+                  driver = iniciar_driver()
+                  driver.get('https://my.imobzi.com/index.html#/home')
+                  time.sleep(3)
+
+                  while True:
+                      try:
+                          while True:
+                              # lembre-se de aumentar este time quando for rodar o programa
+                              time.sleep(3)
+
+                              # atualizar pagina(logo imobzi)
+                              espere_e_clique(driver, By.XPATH, '//div[@class="imobzi-mascot"]')
+
+                              for c in range(1):
+
+                                  print('entrei no loop')
+
+                                  # clicar dinheiro
+                                  espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+
+                                  # abrir menu
+                                  espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ng-component/ion-split-pane/ion-nav/page-deals/ion-header/ion-navbar/div[2]/div")
+                                  print('encontrei o menu')
+                                  time.sleep(0.5)
+
+                                  # selecionar setor de locação
+                                  espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div")
+                                  time.sleep(3)
+
+                                  # clicar no contato. (Aqui é o loop de espera caso nenhum contato tenha chegado ele ficará
+                                  # neste loop alternando entre o padrão 1 e 2 e atualização da pagina)
+                                  time.sleep(5)
+                                  visão_contato = None
+                                  cont = 0
+                                  while visão_contato is None:
+
+                                      try:
+                                          # não pode ser a função porque se não ele não passa para o except
+                                          visão_contato = driver.find_element(By.XPATH,'//div[@class="deal-item-container deal-stagnant"]')
+
+                                      except NoSuchElementException:
+                                          cont += 1
+                                          if cont % 2 == 0:
+                                              time.sleep(5)
+                                              driver.refresh()
+                                              time.sleep(30)
+                                              print('padrão 1')
+                                          else:
+                                              time.sleep(30)
+                                              # atualizar pagina(logo imobzi)
+                                              espere_e_clique(driver, By.XPATH, '//div[@class="imobzi-mascot"]')
+                                              time.sleep(10)
+                                              # clicar dinheirinho
+                                              espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+                                              print('padrão 2')
+
+                                  # clicar no contato
+                                  espere_e_clique(driver, By.XPATH, '//div[@class="deal-item-container deal-stagnant"]')
+                                  print('cliquei no contato')
+
+                                  # clicar whats
+                                  espere_e_clique(driver, By.XPATH, '//button[@class="whatsapp-button"]')
+
+                                  # clicar 'enviar mensagem'
+                                  espere_e_clique(driver, By.XPATH, '/html/body/ion-app/ion-modal/div/whatsapp-sharing/ion-footer/div/div/div[2]/button')
+
+                                  # obtem os handles das abas
+                                  handles = driver.window_handles
+                                  pag = []
+                                  # Imprimir os identificadores
+                                  for handle in handles:
+                                      c = handle
+                                      pag.append(handle)
+                                      print(handle)
+
+                                  # Mudar para foco para  janela whatssApp
+                                  driver.switch_to.window(handle)
+
+                                  # em caso de link incorreto
+                                  page_source = driver.page_source
+                                  if "O link está incorreto. Feche essa janela e tente usar outro link." in page_source:
+                                      time.sleep(2)
+                                      driver.close
+                                      print('Tinha um link incorreto e eu fechei a janela e continuei o serviço')
+                                      # LEMBRE-SE DE ADICIONAR UM BREAK QUANDO TERMINAR O CODIGO PARA QUE ELE CONTINUE A EXECUÇÃO
+                                      break
+
+                                  # botão de mensagem
+                                  espere_e_clique(driver, By.XPATH, '//*[@id="action-button"]')
+
+                                  # usar whatweb
+                                  espere_e_clique(driver, By.XPATH, '//*[@id="fallback_block"]/div/div/h4[2]/a/span')
+                                  time.sleep(5)
+
+                                  # Erro de URL
+                                  wait = WebDriverWait(driver,30)
+                                  alert_xpath = '//button[@data-testid="popup-controls-ok"]'  # Substitua pelo seu XPath do alerta
+                                  try:
+                                      alert = wait.until(EC.presence_of_element_located((By.XPATH, alert_xpath)))
+
+                                      if alert:
+                                          print('Encontrei um contato com URL invalido')
+                                          driver.close()
+                                          time.sleep(0.5)
+                                          driver.switch_to.window(pag[0])
+                                          time.sleep(2)
+
+                                          # negativar contato
+                                          espere_e_clique(driver, By.XPATH, '//button[@id="loss"]')
+                                          time.sleep(0.5)
+                                          # abrir abas de motivos
+                                          espere_e_clique(driver, By.XPATH, "//div[@class='lost-reason-field']")
+                                          time.sleep(0.5)
+                                          # dados do contato invalidos (opção)
+                                          espere_e_clique(driver, By.XPATH,
+                                                          "//div[@class='popover-list-item']//div[@class='popover-item ' and span='Dados de contato inválido']")
+                                          time.sleep(0.5)
+                                          # setinha de ok
+                                          espere_e_clique(driver, By.XPATH,
+                                                          '//button[@form="deal-lost-reason-form" and @type="submit"]')
+                                          time.sleep(5)
+                                          print('contato negativado com sucesso')
+                                          break
+                                  except:
+                                      pass
+
+                                  # Localizar caixa de texto(Tive que usar esta estrutura usando laço while porque a função usando WebDriverWait não funcionou)
+                                  caixa_de_mensagem = None
+                                  while caixa_de_mensagem is None:
+                                      try:
+                                          caixa_de_mensagem = driver.find_element(By.XPATH, '//*[@id="main"]/footer/div[1]/div/span[2]/div/div[2]/div[1]')
+
+                                      except NoSuchElementException:
+                                          time.sleep(3)
+
+                                  # clicar na caixa de texto
+                                  caixa_de_mensagem.click()
+                                  time.sleep(1)
+
+                                  # escrever a mensagem
+                                  caixa_de_mensagem.send_keys('Ola, Meu nome é Pedro sou corretor da Imobiliria Jaguar')
+                                  time.sleep(1)
+                                  # enviar
+                                  caixa_de_mensagem.send_keys(Keys.ENTER)
+                                  time.sleep(1)
+
+                                  caixa_de_mensagem.send_keys( 'Você entrou em contato com a gente referente a imoveis para locação:  https://www.jaguarimoveisguarulhos.com.br/buscar?order=undefined&direction=undefined&availability=rent')
+                                  time.sleep(6)
+                                  # enviar
+                                  caixa_de_mensagem.send_keys(Keys.ENTER)
+                                  time.sleep(1)
+
+                                  caixa_de_mensagem.send_keys( 'Você se lembra qual foi o imovel que você viu? Se não se lembra me passa mais ou menos o que você precisa que eu vejo para você')
+                                  time.sleep(1)
+                                  # enviar
+                                  caixa_de_mensagem.send_keys(Keys.ENTER)
+                                  time.sleep(2)
+
+                                  # fechar aba
+                                  driver.close()
+                                  print('sem novidade meu patrão')
+                                  time.sleep(3)
+
+                                  # voltar para janela CRM(os handles estão armazenados em uma lista e referenciei o primeiro handle(CRM) com o comando pag[0])
+                                  driver.switch_to.window(pag[0])
+
+                                  # atualizar contato para area de INTERESSE
+                                  espere_e_clique(driver, By.XPATH, '//a[contains(text(),"INTERESSE")]')
+                                  time.sleep(5)
+
+                                  # Voltar para os contatos
+                                  driver.back()
+
+                      except:
+                            time.sleep(5)
+                            driver.refresh()
+                            time.sleep(60)
+                            print('padrão tratamento dentro do bloco')
+                            print('Atualizei a pagina')
+
+               if evento_aguardar == 'voltar_aguardar':
+                    janela_aviso_aguardar.close()
+                    time.sleep(0.3)
+                    janela_principal.un_hide()
+
+       #enviar mensagens em massa
        if evento_principal == 'Enviar Mensagens':
            janela_principal.hide()
 
@@ -214,6 +497,7 @@ while True:
                            janela_disparo2['aviso1'].update('Todas as mensagens já foram enviadas', text_color='green')
 
                    if evento_disparo2 == 'cancelar':
+                     janela_principal.un_hide()
                      break
 
 
@@ -251,31 +535,397 @@ while True:
 
            janela_retorno = sg.Window('Retornar clientes $', layout_retorno)
 
+           total=0
            while True:
+               # interface de follow-up
+
 
             evento_retorno, valores_retorno = janela_retorno.read()
 
+            if evento_retorno == '5':
+                total = 5
+
+            if evento_retorno == '10':
+                total = 10
+
+            if evento_retorno == '15':
+                total = 15
+
+            #caso a janela seja fechada
             if evento_retorno == sg.WINDOW_CLOSED:
               janela_retorno.close()
               janela_principal.un_hide()
               break
 
-           #minimizar  janela principal?
+            #Voltar para janela principal
             if evento_retorno == 'voltar_retorno':
-             janela_retorno.hide()
-             time.sleep(1)
+             janela_retorno.close()
+             time.sleep(0.5)
              #aonde fica armazenada esta variavel quando é minimizada?
              janela_principal.un_hide()
+             break
 
 
             if evento_retorno == 'enviar_retorno':
-                print('ok')
+                janela_retorno.hide()
+                time.sleep(0.5)
 
-       if evento_principal == sg.WINDOW_CLOSED:
-             break
+                driver = iniciar_driver()
+                time.sleep(1)
+                driver.get('https://my.imobzi.com/index.html#/initial-page')
 
-janela_principal.close()
-janela_disparo.close()
-janela_disparo2.close()
-janela_texto.close()
-janela_retorno.close()
+                time.sleep(2)
+
+                # clicar dinheiro
+                espere_e_clique(driver, By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+
+                # abrir menu
+                espere_e_clique(driver, By.XPATH,"/html/body/ion-app/ng-component/ion-split-pane/ion-nav/page-deals/ion-header/ion-navbar/div[2]/div")
+                print('encontrei o menu')
+
+                # selecionar locação
+                espere_e_clique(driver, By.XPATH,"/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div")
+                time.sleep(3)
+
+                # não esquecer de colocar o codigo correto aqui.
+                for c in range(total):
+
+                    time.sleep(5)
+
+                    # rolar até o contato desejado
+                    contato = aguardar_carregar(driver, By.XPATH, "//ion-item[starts-with(@class, 'deal-item')]")
+                    time.sleep(5)
+
+                    elemento = driver.find_element(By.XPATH, "//div[starts-with(@class,'deal-item-container')][15]")
+                    driver.execute_script("arguments[0].scrollIntoView();", elemento)
+
+                    # clicar no contato
+                    time.sleep(5)
+                    espere_e_clique(driver, By.XPATH, "//div[starts-with(@class,'deal-item-container')][40]")
+
+                    # clicar whats
+                    espere_e_clique(driver, By.XPATH, '//button[@class="whatsapp-button"]')
+
+                    # clicar 'enviar mensagem'
+                    espere_e_clique(driver, By.XPATH,'/html/body/ion-app/ion-modal/div/whatsapp-sharing/ion-footer/div/div/div[2]/button')
+
+                    # obtem os handles das abas
+                    handles = driver.window_handles
+                    pag = []
+                    # Imprimir os identificadores
+                    for handle in handles:
+                        c = handle
+                        pag.append(handle)
+                        print(handle)
+
+                    # Mudar para foco para  janela whatssApp
+                    driver.switch_to.window(handle)
+
+                    # em caso de link incorreto
+                    page_source = driver.page_source
+                    if "O link está incorreto. Feche essa janela e tente usar outro link." in page_source:
+                        time.sleep(2)
+                        driver.close
+                        print('Tinha um link incorreto e eu fechei a janela e continuei o serviço')
+                        # LEMBRE-SE DE ADICIONAR UM BREAK QUANDO TERMINAR O CODIGO PARA QUE ELE CONTINUE A EXECUÇÃO
+                        break
+
+                    # botão de mensagem
+                    espere_e_clique(driver, By.XPATH, '//*[@id="action-button"]')
+
+                    # usar whatweb
+                    espere_e_clique(driver, By.XPATH, '//*[@id="fallback_block"]/div/div/h4[2]/a/span')
+                    time.sleep(5)
+
+                    # Erro de URL
+                    wait = WebDriverWait(driver, 30)
+                    alert_xpath = '//button[@data-testid="popup-controls-ok"]'  # Substitua pelo seu XPath do alerta
+                    try:
+                        alert = wait.until(EC.presence_of_element_located((By.XPATH, alert_xpath)))
+
+                        if alert:
+                            print('Encontrei um contato com URL invalido')
+                            driver.close()
+                            time.sleep(0.5)
+                            driver.switch_to.window(pag[0])
+                            time.sleep(2)
+
+                            # negativar contato
+                            espere_e_clique(driver, By.XPATH, '//button[@id="loss"]')
+                            time.sleep(0.5)
+                            # abrir abas de motivos
+                            espere_e_clique(driver, By.XPATH, "//div[@class='lost-reason-field']")
+                            time.sleep(0.5)
+                            # dados do contato invalidos (opção)
+                            espere_e_clique(driver, By.XPATH,
+                                            "//div[@class='popover-list-item']//div[@class='popover-item ' and span='Dados de contato inválido']")
+                            time.sleep(0.5)
+                            # setinha de ok
+                            espere_e_clique(driver, By.XPATH,
+                                            '//button[@form="deal-lost-reason-form" and @type="submit"]')
+                            time.sleep(5)
+                            print('contato negativado com sucesso')
+                            break
+                    except:
+                        pass
+
+                    # Localizar caixa de texto(Tive que usar esta estrutura usando laço while porque a função usando WebDriverWait não funcionou)
+                    caixa_de_mensagem = None
+                    while caixa_de_mensagem is None:
+                        try:
+                            caixa_de_mensagem = driver.find_element(By.XPATH,'//*[@id="main"]/footer/div[1]/div/span[2]/div/div[2]/div[1]')
+
+                        except NoSuchElementException:
+                            time.sleep(3)
+
+                    # clicar na caixa de texto
+                    caixa_de_mensagem.click()
+                    time.sleep(1)
+
+                    # escrever a mensagem
+                    caixa_de_mensagem.send_keys('Ola, Sou da Imobiliria Jaguar')
+                    time.sleep(1)
+                    # enviar mensagem
+                    caixa_de_mensagem.send_keys(Keys.ENTER)
+                    time.sleep(2)
+
+                    # escrever a mensagem
+                    caixa_de_mensagem.send_keys('Um tempo atrás a gente conversou sobre imoveis para locação, você já encontrou o seu imovel?')
+                    time.sleep(1)
+                    # enviar mensagem
+                    caixa_de_mensagem.send_keys(Keys.ENTER)
+                    time.sleep(3)
+
+                    # escrever a mensagem
+                    caixa_de_mensagem.send_keys('Caso não tenha encontrado digite "OK", que nós te apresentaremos outros imoveis')
+                    time.sleep(1)
+                    # enviar mensagem
+                    caixa_de_mensagem.send_keys(Keys.ENTER)
+
+                    # fechar aba
+                    driver.close()
+                    print('As mensagens foram entregues')
+                    time.sleep(3)
+
+                    # voltar para janela CRM(os handles estão armazenados em uma lista e referenciei o primeiro handle(CRM) com o comando pag[0])
+                    driver.switch_to.window(pag[0])
+
+                    # atualizar contato
+                    espere_e_clique(driver, By.XPATH, '//a[contains(text(),"FOLLOW-UP")]')
+                    time.sleep(10)
+
+                    # clicar no logo
+                    espere_e_clique(driver, By.XPATH, '//div[@class="imobzi-mascot"]')
+                    time.sleep(5)
+
+                    # clicar dinheirinho
+                    espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+                    print('Proximo contato')
+
+
+                #Layout de aviso de finalização
+                layout_aviso_fim_retorno = [
+                    [sg.Text('Processo finalizado\nTenha um Bom Dia! ', text_color='#FFFFFF', justification='left',font=('Century Gothic', 20, 'bold'), background_color='#000000')],
+                    [sg.Column([[sg.Button('Voltar', key='voltar_fim_dispensar', button_color=('#000000', '#FFFFFF'), font=fonte_geral_botões, size=(10, 1))]], justification='center')],
+                ]
+
+                janela_aviso_fim_retorno = sg.Window('Operação Finalizada', layout_aviso_fim_retorno, size=(370, 150))
+
+                #Janela aviso de processo finalizado
+                while True:
+
+                    evento_fim_retorno, valores_fim_retorno = janela_aviso_fim_retorno.read()
+
+                    if evento_fim_retorno == sg.WINDOW_CLOSED:
+                        break
+
+                    # Voltar para a janela principal
+                    if evento_fim_retorno == 'voltar_fim_dispensar':
+                        janela_aviso_fim_retorno.hide()
+                        time.sleep(0.3)
+                        janela_retorno.un_hide()
+
+       if evento_principal == 'dispensar':
+           janela_principal.hide()
+
+           layout_dispensar = [
+               [sg.Text('Quantos clientes você deseja dispensar?', font=('Lato', 16, 'bold'), background_color='#000000')],
+               [sg.Radio('10 clientes', 'grupo', key='10', font=(fonte_geral_botões), background_color='#000000')],
+               [sg.Radio('20 clientes', 'grupo', key='20', font=(fonte_geral_botões), background_color='#000000')],
+               [sg.Radio('30 clientes', 'grupo', key='30', font=(fonte_geral_botões), background_color='#000000')],
+               [sg.Button('OK', font=fonte_geral_botões, button_color=cor_botao, key='ok_dispensar'),
+                sg.Button('Voltar', font=fonte_geral_botões, button_color=cor_botao, key='voltar_dispensar')],
+           ]
+
+           janela_dispensar = sg.Window('Dispensar contatos retornados', layout_dispensar)
+
+
+
+           total_dispensar = 0
+           while True:
+
+               evento_dispensar, valor_dispensar = janela_dispensar.read()
+
+               if evento_dispensar == sg.WINDOW_CLOSED:
+                   janela_dispensar.close()
+                   janela_principal.un_hide()
+                   break
+
+               if valor_dispensar['10'] == True:
+                   total_dispensar = 10
+
+               if valor_dispensar['20'] == True :
+                   total_dispensar = 20
+
+               if valor_dispensar['30'] == True:
+                   total_dispensar = 30
+
+               if evento_dispensar == 'ok_dispensar':
+
+
+                   janela_dispensar.hide()
+                   driver = iniciar_driver()
+                   time.sleep(0.5)
+                   driver.get('https://my.imobzi.com/index.html#/home')
+                   time.sleep(3)
+
+                   while True:
+
+                       for c in range(total_dispensar):
+                           time.sleep(5)
+                           # Voltar ao inicio
+                           espere_e_clique(driver, By.XPATH, '//div[@class="imobzi-mascot"]')
+
+                           # clicar dinheiro
+                           espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ng-component/ion-split-pane/ion-menu/div/ion-content/div[2]/ul/li[6]/div/div/button")
+
+                           # abrir menu
+                           espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ng-component/ion-split-pane/ion-nav/page-deals/ion-header/ion-navbar/div[2]/div")
+                           print('encontrei o menu')
+                           time.sleep(0.5)
+
+                           # selecionar setor de locação
+                           espere_e_clique(driver, By.XPATH, "/html/body/ion-app/ion-popover/div/div[2]/div/menu-popover/ion-list/div[1]/div")
+                           time.sleep(10)
+
+                           # CLICAR NO CONTATO
+                           espere_e_clique(driver, By.XPATH, '//*[@id="6542798388985856"]')
+                           time.sleep(1)
+                           # negativar contato
+                           espere_e_clique(driver, By.XPATH, '//button[@id="loss"]')
+                           time.sleep(1)
+                           # abrir abas de motivos
+                           espere_e_clique(driver, By.XPATH, "//div[@class='lost-reason-field']")
+                           time.sleep(1)
+                           # dados do contato invalidos (opção)
+                           espere_e_clique(driver, By.XPATH, "//div[@class='popover-list-item']//div[@class='popover-item ' and span='Dados de contato inválido']")
+                           time.sleep(1)
+                           # setinha de ok
+                           espere_e_clique(driver, By.XPATH, '//button[@form="deal-lost-reason-form" and @type="submit"]')
+                           time.sleep(8)
+                           print('contato negativado com sucesso')
+
+
+
+                       layout_aviso_fim_dispensar = [
+                           [sg.Text('Processo finalizado\nTenha um Bom Dia! ', text_color='#FFFFFF', justification='left', font=('Century Gothic', 20, 'bold'), background_color='#000000')],
+                           [sg.Column([[sg.Button('Voltar', key='voltar_fim_dispensar', button_color=('#000000', '#FFFFFF'), font=fonte_geral_botões, size=(10, 1))]], justification='center')]
+                       ]
+
+                       janela_aviso_fim_dispensar = sg.Window('Operação Finalizada', layout_aviso_fim_dispensar, size=(370, 150))
+
+                       while True:
+
+                           evento_fim_dispensar, valores_fim_dispensar = janela_aviso_fim_dispensar.read()
+
+                           if evento_fim_dispensar == sg.WINDOW_CLOSED:
+                               break
+
+                           if evento_fim_dispensar == 'voltar_fim_dispensar':
+                               janela_aviso_fim_dispensar.close()
+                               time.sleep(0.2)
+                               janela_dispensar.un_hide()
+
+               if evento_dispensar == 'voltar_dispensar':
+                   janela_dispensar.close()
+                   time.sleep(0.2)
+                   janela_principal.un_hide()
+                   break
+
+       if evento_principal == 'login':
+
+               janela_principal.hide()
+               time.sleep(1)
+               driver = iniciar_driver()
+
+               #layout janela de instruções
+               layout_login = [
+                   [sg.Text(
+                       'Minimize o aviso faça o login manualmente no WhatsApp\ne Imobzi quando terminar clique em "Ok"',
+                       justification='center', font=('Lato', 16, 'bold'), background_color='#000000')],
+                   [sg.Column([[sg.Button('Ok', key='ok', button_color=cor_botao, font=fonte_geral_botões, size=(10, 1))]],
+                              justification='center')]
+               ]
+
+               #inicia o Chrome
+               driver.get('https://web.whatsapp.com/')
+               time.sleep(5)
+
+               #minimiza a janela
+               driver.minimize_window()
+               time.sleep(1)
+
+               # Teste de erro
+               espere_e_clique(driver, By.XPATH, '//*[@id="action-button"]')
+
+               #abre a janela de instruções
+               janela_login = sg.Window('Login na sua conta', layout_login, size=(650, 125))
+
+               while True:
+
+                evento_login, valores_login = janela_login.read()
+
+                if evento_login == sg.WINDOW_CLOSED:
+                  janela_login.close()
+                  break
+
+                if evento_login == 'ok':
+                    janela_login.close()
+                    time.sleep(0.5)
+                    janela_principal.un_hide()
+
+                # Teste de erro
+                espere_e_clique(driver, By.XPATH, '//*[@id="action-button"]')
+
+
+ except NoSuchElementException:
+    time.sleep(2)
+    driver.refresh()
+    time.sleep(5)
+    print(erro)
+    print('padrão 3')
+    print('Atualizei a pagina')
+
+ except requests.exceptions.Timeout:
+     time.sleep(120)
+     driver.refresh()
+     print('Timeout de conexão. Aguardando 120 segundos ')
+
+ except requests.exceptions.ConnectionError:
+     time.sleep(120)
+     driver.refresh()
+     print("Erro de conexão. Aguardando 120 segundos.")
+
+ except Exception as erro:
+     time.sleep(2)
+     driver.refresh()
+     time.sleep(5)
+     print('padrão 4')
+     print(f'Outro tipo de erro{erro}')
+
+
+
+#encerrar bloqueio de modo suspensão
+ctypes.windll.kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+
+# Adicionar tratamento de erro para internet e para caso login em outra maquina
