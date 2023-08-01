@@ -1,0 +1,22 @@
+import os 
+import random
+
+
+fonte='ABCDEFGHIJKLMNOPQRSTUVXZ1234567890'
+licenças_geradas=0
+quantas_licenças=int(input('Digite o numero de licenças: '))
+licenças=[]
+
+while licenças_geradas <= quantas_licenças-1:
+    #cria 3 combinações de numeros e letras, com 5 caracteres cada 
+    licença=f'{random.choices(fonte,k=5)}-{random.choices(fonte,k=5)}-{random.choices(fonte,k=5)}'
+    #formata os caracteres
+    licença_formatada = licença.replace('[','').replace(']','').replace("'","").replace(',','').replace(' ','')
+    licenças.append(licença_formatada)
+    licenças_geradas +=1
+
+print(licenças)
+
+#cria uma arquivo para armazenar as senhas
+with open('Senhas 1.txt', 'w',newline='') as arquivo:
+    arquivo.writelines(os.linesep.join(licenças))
