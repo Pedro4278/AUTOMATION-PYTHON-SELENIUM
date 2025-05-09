@@ -1,18 +1,23 @@
-# Office Automation Scripts with Python and Selenium
+# Automated Real Estate CRM Assistant 
 
-This repository contains Python automation scripts developed using Selenium to streamline routine tasks performed in an office environment.
 
-The main goal of this project was to reduce manual effort and improve productivity by automating repetitive actions such as form filling, file downloads/uploads, data extraction from websites, and more.
+## Key Features
 
-## Features
+- **Automated client messaging** (bulk/individual WhatsApp messages)
+- **CRM integration** (contact management, follow-ups, status updates)
+- **Phone number** extraction from text/data
+- **Customizable** templates for client communication
+- **GUI dashboard** (PySimpleGUI) with multi-step workflows
 
-- Automated web navigation and interaction
-- Task-specific scripts tailored to office workflows
-- Clean and modular Python code using Selenium WebDriver
-- Time-saving automations to reduce repetitive work
+## Built With
 
-## Requirements
+`Python` | `Selenium` | `PySimpleGUI` | `phonenumbers` | `PyWhatKit`
 
-- Python 3.x  
-- Selenium  
-- ChromeDriver (or the driver for your preferred browser)
+## Ideal Use Case
+
+For real estate agents to automate:
+- Lead follow-ups
+- Client notifications
+- CRM data entry
+
+### full code on "MAIN PROGRAM"
